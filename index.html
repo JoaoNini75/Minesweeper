@@ -1,15 +1,222 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="style.css">
-    <!-- Começado a 06/08/2024 e terminado a ??? -->
-    <title>Minesweeper</title>
+	<meta charset="UTF-8">
+	<title>Minesweeper</title>
 </head>
 <body>
-    <h1>Minesweeper</h1>
+	<div id="grid" class="grid"></div>
 
-    <script src="./script.js"></script>
+	<div id="flagsLeftDiv">
+		<h2 id="flagsLeft">Bombs Left: </h2>
+	</div>
+
+	<div>
+		<button id="mode">Mode: Dig</button>
+	</div>
+
+<style>
+	body {
+		background-color: #666666;
+	}
+
+	#grid {
+		width: 500px;
+		height: 500px;
+		display: flex;
+		flex-wrap: wrap;
+		border: 5px solid black;
+		margin: 3%;
+	}
+
+	.grid div {
+		text-align: center;
+		width: 50px;
+		height: 50px;
+		background-color: #444444;
+		border: 1px solid black;
+		box-sizing: border-box;
+	}
+	
+	p {
+		color: white;
+	}
+
+	#flagsLeft {
+		color: white;
+		margin: 3%;
+	}
+
+	#mode {
+		margin-left: 3%;
+		height: 30px;
+		width: 110px;
+		font-size: large;
+	}
+
+</style>
+
+<script>
+	const grid = document.getElementById("grid");
+	const flagsLeftDisplay = document.getElementById("flagsLeft");
+	const modeBtn = document.getElementById("mode");
+	const rows = 10, cols = 10, bombs = 10;
+
+	let digMode = true;
+	let flagsLeft = bombs;
+
+
+	document.addEventListener("DOMContentLoaded", main);
+
+
+	function main() {
+		updateDisplayFlagNum();
+		createGrid();
+		placeBombs();
+		countNeighbouringBombs();
+
+		listenToModeChange();
+	}
+
+	function updateDisplayFlagNum() {
+		flagsLeftDisplay.innerText = "Flags Left: " + flagsLeft;
+	}
+
+	function createGrid() {
+		let div, div2, p;
+
+		for (let i = 0; i < rows; i++) {
+			for (let j = 0; j < cols; j++) { 
+				div = document.createElement("div");
+				div.id = i + "_" + j;
+				div.setAttribute("status", "hide");
+
+				p = document.createElement("p");
+				p.innerText = "";
+				div.appendChild(p);
+
+				grid.appendChild(div);
+
+				div.addEventListener('click', function() {
+					processTileClick(document.getElementById(i + "_" + j));
+				});
+			}
+		}
+	}
+
+	function placeBombs() {
+		let div, row, col;
+	
+		for (let i = 0; i < bombs; i++) {
+			row = Math.floor(Math.random() * rows);
+			col = Math.floor(Math.random() * cols);
+			div = document.getElementById(row + "_" + col);
+
+			if (!div.classList.contains("bomb"))
+				div.classList.add("bomb");
+			else
+				i--; 
+		}
+	}
+
+	function countNeighbouringBombs() {
+		let div;
+
+		for (let i = 0; i < rows; i++) {
+			for (let j = 0; j < cols; j++) {
+				div = document.getElementById(i + "_" + j);
+				if (!div.classList.contains("bomb"))
+					div.classList.add(getTileNum(i, j));
+			}
+		}		
+	}
+
+	function getTileNum(row, col) {
+		let bombs = 0;
+
+		for (let i = row-1; i <= row+1; i++) {
+			for (let j = col-1; j <= col+1; j++) {
+				if ((i >= 0 && i < rows && j >= 0 && j < cols) &&
+				 	(i != row || j != col) &&
+					document.getElementById(i + "_" + j).classList.contains("bomb"))
+					bombs++;
+			}
+		}	
+
+		return bombs;
+	}
+
+	function showHideTiles(show) {
+		let div, p;
+
+		for (let i = 0; i < rows; i++) {
+			for (let j = 0; j < cols; j++) {
+				div = document.getElementById(i + "_" + j);
+				p = div.children.item(0);
+				p.innerText = show ? div.className : "";
+			}
+		}	
+	}
+
+	function processTileClick(div) {
+		console.log(div);
+		div.style.backgroundColor = "#666666";
+		
+		if (digMode) {
+			div.children.item(0).innerText = div.className;
+			if (div.className == "bomb")
+				alert("Game Over!");
+
+		} else {
+			updateFlagDisplay(div);
+		}
+
+		checkWin();
+	}
+
+	function updateFlagDisplay(div) { // hide, show, flag
+		if (div.getAttribute("status") == "hide") {
+			checkFlagImage(div);
+			div.setAttribute("status", "flag");
+			div.children.item(1).hidden = false;
+			flagsLeft--;
+			
+		} else if (div.getAttribute("status") == "flag") {
+			div.setAttribute("status", "hide");
+			div.children.item(1).hidden = true;
+			flagsLeft++;
+		}
+
+		updateDisplayFlagNum();
+	}
+
+	function checkFlagImage(div) {
+		if (div.children.length > 1)
+			return;
+
+		let img = document.createElement("img");
+		img.src = "images/flag.jpg";
+		img.height = div.style.height;
+		img.width = div.style.width;
+		img.alt = "flag";
+		div.appendChild(img);
+	}
+
+	function checkWin() {
+
+	}
+
+	function listenToModeChange() {
+		modeBtn.addEventListener("click", function() {
+			digMode = !digMode;
+
+			if (modeBtn.innerText == "Mode: Dig")
+				modeBtn.innerText = "Mode: Flag";
+			else	
+				modeBtn.innerText = "Mode: Dig"
+		});
+	}
+
+</script>
 </body>
 </html>
