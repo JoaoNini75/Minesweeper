@@ -8,16 +8,20 @@
 	<div id="grid" class="grid"></div>
 
 	<div id="flagsLeftDiv">
-		<h2 id="flagsLeft">Bombs Left: </h2>
+		<h2 id="flagsLeft">Flags Left: </h2>
 	</div>
 
 	<div>
 		<button id="mode">Mode: Dig</button>
 	</div>
 
+	<div>
+		<button id="newgame">New Game</button>
+	</div>
+
 <style>
 	body {
-		background-color: #666666;
+		background-color: #444444;
 	}
 
 	#grid {
@@ -37,10 +41,47 @@
 		border: 1px solid black;
 		box-sizing: border-box;
 	}
-	
+
 	p {
-		color: white;
+		font-family: Verdana, Geneva, Tahoma, sans-serif;
+		font-size: 25px;
+		font-weight: bolder;
+		margin-top: 10px;
 	}
+
+	/* azul, verde, amarelo, laranja, vermelho, roxo, castanho, preto */
+	.bombs_1 {
+		color: rgba(0, 34, 228, 0.904);
+	}
+
+	.bombs_2 {
+		color: rgb(0, 85, 14);
+	}
+
+	.bombs_3 {
+		color: rgba(194, 197, 0, 0.849);
+	}
+
+	.bombs_4 {
+		color: rgb(240, 144, 0);
+	}
+
+	.bombs_5 {
+		color: rgb(131, 0, 0);
+	}
+
+	.bombs_6 {
+		color: rgb(131, 0, 114);
+	}
+
+	.bombs_7 {
+		color: rgb(82, 37, 34);
+	}
+
+	.bombs_8 {
+		color: black;
+	}
+	
 
 	#flagsLeft {
 		color: white;
@@ -54,16 +95,42 @@
 		font-size: large;
 	}
 
+	#newgame {
+		margin-top: 10%;
+		margin-left: 3%;
+		height: 40px;
+		width: 150px;
+		font-size: 25px;
+		background-color: rgba(0, 231, 69, 0.6);
+		border: 2px solid black;
+	}
+
+	#newgame:hover {
+		background-color: rgba(0, 231, 69, 0.8);
+	}
+
+	div[status="show"] {
+		background-color: #555555;
+	}
+
+	img {
+		margin-top: -25px;
+	}
+
+	.bombImage {
+		margin-left: 5px;
+	}
+
 </style>
 
 <script>
 	const grid = document.getElementById("grid");
 	const flagsLeftDisplay = document.getElementById("flagsLeft");
 	const modeBtn = document.getElementById("mode");
-	const rows = 10, cols = 10, bombs = 10;
+	const ROWS = 10, COLS = 10, BOMBS = 10;
 
 	let digMode = true;
-	let flagsLeft = bombs;
+	let flagsLeft = BOMBS;
 
 
 	document.addEventListener("DOMContentLoaded", main);
@@ -74,8 +141,10 @@
 		createGrid();
 		placeBombs();
 		countNeighbouringBombs();
+		showStartZoneTiles();
 
 		listenToModeChange();
+		listenToNewGame();
 	}
 
 	function updateDisplayFlagNum() {
@@ -85,11 +154,15 @@
 	function createGrid() {
 		let div, div2, p;
 
-		for (let i = 0; i < rows; i++) {
-			for (let j = 0; j < cols; j++) { 
+		for (let i = 0; i < ROWS; i++) {
+			for (let j = 0; j < COLS; j++) { 
 				div = document.createElement("div");
 				div.id = i + "_" + j;
-				div.setAttribute("status", "hide");
+
+				if (i > 1 || j > 1)
+					div.setAttribute("status", "hide");
+				else 
+					div.setAttribute("status", "show");
 
 				p = document.createElement("p");
 				p.innerText = "";
@@ -107,26 +180,38 @@
 	function placeBombs() {
 		let div, row, col;
 	
-		for (let i = 0; i < bombs; i++) {
-			row = Math.floor(Math.random() * rows);
-			col = Math.floor(Math.random() * cols);
+		for (let i = 0; i < BOMBS; i++) {
+			row = Math.floor(Math.random() * ROWS);
+			col = Math.floor(Math.random() * COLS);
 			div = document.getElementById(row + "_" + col);
 
-			if (!div.classList.contains("bomb"))
+			if (!div.classList.contains("bomb") && (row > 1 || col > 1)) {
 				div.classList.add("bomb");
-			else
+				addBombImage(div);
+			} else
 				i--; 
 		}
+	}
+
+	function addBombImage(div) {
+		let img = document.createElement("img");
+		img.className = "bombImage";
+		img.src = "images/bomb.png";
+		img.height = 43;
+		img.width = 43;
+		img.alt = "bomb";
+		img.hidden = true;
+		div.appendChild(img);
 	}
 
 	function countNeighbouringBombs() {
 		let div;
 
-		for (let i = 0; i < rows; i++) {
-			for (let j = 0; j < cols; j++) {
+		for (let i = 0; i < ROWS; i++) {
+			for (let j = 0; j < COLS; j++) {
 				div = document.getElementById(i + "_" + j);
-				if (!div.classList.contains("bomb"))
-					div.classList.add(getTileNum(i, j));
+				if (!div.classList.contains("bomb")) 
+					div.classList.add("bombs_" + getTileNum(i, j));
 			}
 		}		
 	}
@@ -136,7 +221,7 @@
 
 		for (let i = row-1; i <= row+1; i++) {
 			for (let j = col-1; j <= col+1; j++) {
-				if ((i >= 0 && i < rows && j >= 0 && j < cols) &&
+				if ((i >= 0 && i < ROWS && j >= 0 && j < COLS) &&
 				 	(i != row || j != col) &&
 					document.getElementById(i + "_" + j).classList.contains("bomb"))
 					bombs++;
@@ -149,8 +234,8 @@
 	function showHideTiles(show) {
 		let div, p;
 
-		for (let i = 0; i < rows; i++) {
-			for (let j = 0; j < cols; j++) {
+		for (let i = 0; i < ROWS; i++) {
+			for (let j = 0; j < COLS; j++) {
 				div = document.getElementById(i + "_" + j);
 				p = div.children.item(0);
 				p.innerText = show ? div.className : "";
@@ -160,30 +245,34 @@
 
 	function processTileClick(div) {
 		console.log(div);
-		div.style.backgroundColor = "#666666";
 		
-		if (digMode) {
-			div.children.item(0).innerText = div.className;
-			if (div.className == "bomb")
-				alert("Game Over!");
+		if (digMode && div.getAttribute("status") == "hide") {
+			if (div.className == "bomb") {
+				gameOver();
+			} else {
+				div.setAttribute("status", "show");
+				if (div.className != "bombs_0")
+					div.children.item(0).innerText = div.className.split("_")[1];
+			}
 
-		} else {
+		} else if (!digMode) {
 			updateFlagDisplay(div);
 		}
 
-		checkWin();
+		if (isGameWin())
+			gameWon();
 	}
 
 	function updateFlagDisplay(div) { // hide, show, flag
 		if (div.getAttribute("status") == "hide") {
 			checkFlagImage(div);
 			div.setAttribute("status", "flag");
-			div.children.item(1).hidden = false;
+			div.children.item(div.children.length-1).hidden = false;
 			flagsLeft--;
 			
 		} else if (div.getAttribute("status") == "flag") {
 			div.setAttribute("status", "hide");
-			div.children.item(1).hidden = true;
+			div.children.item(div.children.length-1).hidden = true;
 			flagsLeft++;
 		}
 
@@ -191,19 +280,72 @@
 	}
 
 	function checkFlagImage(div) {
-		if (div.children.length > 1)
+		if (div.children.length > 2)
 			return;
 
 		let img = document.createElement("img");
-		img.src = "images/flag.jpg";
-		img.height = div.style.height;
-		img.width = div.style.width;
+		img.src = "images/flag.png";
+		img.height = 50;
+		img.width = 50;
 		img.alt = "flag";
 		div.appendChild(img);
 	}
 
-	function checkWin() {
+	function gameOver() {
+		const tiles = grid.childNodes;
 
+		tiles.forEach(t => {
+			t.setAttribute("status", "show");
+			if (t.className == "bomb")
+				t.children.item(1).hidden = false;
+			else if (t.className != "bombs_0")
+				t.children.item(0).innerText = t.className.split("_")[1];
+		});
+
+		alert("Game Over!");
+
+
+
+		// TODO!!!
+	}
+
+	function gameWon() {
+		alert("You Won!");
+		// TODO!!!
+	}
+
+	function isGameWin() {
+		// to win you can flag all bombs or dig all non-bomb tiles
+		const bombs = document.querySelectorAll('.bomb');
+		let bombsFlagged = 0;
+
+		for (let i = 0; i < bombs.length; i++)
+			if (bombs.item(i).getAttribute("status") == "flag")
+				bombsFlagged++;
+
+		if (bombsFlagged == bombs.length)
+			return true;
+
+		const tiles = grid.childNodes;
+		let showTiles = 0;
+
+		for (let i = 0; i < tiles.length; i++)
+			if (tiles.item(i).getAttribute("status") == "show")
+				showTiles++;
+
+		return showTiles == ROWS * COLS - BOMBS;
+	}
+
+	function showStartZoneTiles() {
+		let div;
+
+		for (let i = 0; i < 2; i++) {
+			for (let j = 0; j < 2; j++) {
+				div = document.getElementById(i + "_" + j);
+				if (div.className != "bombs_0")
+					div.children.item(0).innerText = div.className.split("_")[1];
+			}
+		}
 	}
 
 	function listenToModeChange() {
@@ -214,6 +356,12 @@
 				modeBtn.innerText = "Mode: Flag";
 			else	
 				modeBtn.innerText = "Mode: Dig"
+		});
+	}
+
+	function listenToNewGame() {
+		document.getElementById("newgame").addEventListener("click", function() {
+			location.reload();
 		});
 	}
 
