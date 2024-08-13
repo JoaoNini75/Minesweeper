@@ -19,6 +19,10 @@
 		<button id="newgame">New Game</button>
 	</div>
 
+	<div class="popup" onclick="togglePopup()">
+		<span class="popuptext" id="myPopup">Bomb number:</span>
+	</div>
+
 <style>
 	body {
 		background-color: #444444;
@@ -121,12 +125,68 @@
 		margin-left: 5px;
 	}
 
+
+	/* Popup container */
+	.popup {
+		margin-left: 260px;
+		position: relative;
+		display: inline-block;
+		cursor: pointer;
+	}
+
+	/* The actual popup (appears on top) */
+	.popup .popuptext {
+		visibility: hidden;
+		width: 160px;
+		background-color: #55555541;
+		color: #fff;
+		text-align: center;
+		border-radius: 6px;
+		padding: 8px 0;
+		position: absolute;
+		z-index: 1;
+		bottom: 125%;
+		left: 50%;
+		margin-left: -80px;
+	}
+
+	/* Popup arrow */
+	.popup .popuptext::after {
+		content: "";
+		position: absolute;
+		top: 100%;
+		left: 50%;
+		margin-left: -5px;
+		border-width: 5px;
+		border-style: solid;
+		border-color: #555 transparent transparent transparent;
+	}
+
+	/* Toggle this class when clicking on the popup container (hide and show the popup) */
+	.popup .show {
+		visibility: visible;
+		/*-webkit-animation: fadeIn 1s;
+		animation: fadeIn 1s*/
+	}
+
+	/* Add animation (fade in the popup) 
+	@-webkit-keyframes fadeIn {
+		from {opacity: 0;}
+		to {opacity: 1;}
+	}
+
+	@keyframes fadeIn {
+		from {opacity: 0;}
+		to {opacity:1 ;}
+	}*/
+
 </style>
 
 <script>
 	const grid = document.getElementById("grid");
 	const flagsLeftDisplay = document.getElementById("flagsLeft");
 	const modeBtn = document.getElementById("mode");
+	const popup = document.getElementById("myPopup");
 	const ROWS = 10, COLS = 10, BOMBS = 10;
 
 	let digMode = true;
@@ -137,11 +197,12 @@
 
 
 	function main() {
+		togglePopup();
 		updateDisplayFlagNum();
 		createGrid();
 		placeBombs();
 		countNeighbouringBombs();
-		showStartZoneTiles();
+		showRandomStartZoneTiles();
 
 		listenToModeChange();
 		listenToNewGame();
@@ -158,11 +219,7 @@
 			for (let j = 0; j < COLS; j++) { 
 				div = document.createElement("div");
 				div.id = i + "_" + j;
-
-				if (i > 1 || j > 1)
-					div.setAttribute("status", "hide");
-				else 
-					div.setAttribute("status", "show");
+				div.setAttribute("status", "hide");
 
 				p = document.createElement("p");
 				p.innerText = "";
@@ -185,7 +242,7 @@
 			col = Math.floor(Math.random() * COLS);
 			div = document.getElementById(row + "_" + col);
 
-			if (!div.classList.contains("bomb") && (row > 1 || col > 1)) {
+			if (!div.classList.contains("bomb")) {
 				div.classList.add("bomb");
 				addBombImage(div);
 			} else
@@ -251,8 +308,11 @@
 				gameOver();
 			} else {
 				div.setAttribute("status", "show");
+
 				if (div.className != "bombs_0")
 					div.children.item(0).innerText = div.className.split("_")[1];
+				else
+					openAdjacent0Tiles(div.id);
 			}
 
 		} else if (!digMode) {
@@ -263,7 +323,27 @@
 			gameWon();
 	}
 
-	function updateFlagDisplay(div) { // hide, show, flag
+	function openAdjacent0Tiles(divId) {
+		const directions = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+		const row = parseInt(divId.split("_")[0]);
+		const col = parseInt(divId.split("_")[1]);
+		let div;
+
+		for (let idx = 0; idx < directions.length; idx++) {
+			i = row + directions[idx][0];
+			j = col + directions[idx][1];
+			div = document.getElementById(i + "_" + j);
+
+			if ((i >= 0 && i < ROWS && j >= 0 && j < COLS) &&
+				div.classList.contains("bombs_0") &&
+				div.getAttribute("status") == "hide") {
+					div.setAttribute("status", "show");
+					openAdjacent0Tiles(div.id);
+			}	
+		}
+	}
+
+	function updateFlagDisplay(div) { // status: hide, show, flag
 		if (div.getAttribute("status") == "hide") {
 			checkFlagImage(div);
 			div.setAttribute("status", "flag");
@@ -295,7 +375,11 @@
 		const tiles = grid.childNodes;
 
 		tiles.forEach(t => {
+			if (t.getAttribute("status") == "flag")
+				t.children.item(t.children.length-1).hidden = true;
+
 			t.setAttribute("status", "show");
+
 			if (t.className == "bomb")
 				t.children.item(1).hidden = false;
 			else if (t.className != "bombs_0")
@@ -348,6 +432,22 @@
 		}
 	}
 
+	function showRandomStartZoneTiles() {
+		let div;
+
+		for (let i = 0; i < ROWS; i++) {
+			for (let j = 0; j < COLS; j++) {
+				div = document.getElementById(i + "_" + j);
+
+				if (div.classList.contains("bombs_0")) {
+					div.setAttribute("status", "show");
+					openAdjacent0Tiles(div.id);
+					return;
+				}	
+			}
+		}
+	}
+
 	function listenToModeChange() {
 		modeBtn.addEventListener("click", function() {
 			digMode = !digMode;
@@ -363,6 +463,10 @@
 		document.getElementById("newgame").addEventListener("click", function() {
 			location.reload();
 		});
+	}
+
+	function togglePopup() {
+  		popup.classList.toggle("show");
 	}
 
 </script>
