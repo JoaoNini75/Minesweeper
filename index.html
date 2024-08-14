@@ -7,11 +7,26 @@
 <body>
 	<div id="grid" class="grid"></div>
 
-	<div id="flagsLeftDiv">
-		<h2 id="flagsLeft">Flags Left: </h2>
+	<div class="popup start">
+		<span class="popuptext" id="myPopup">
+			Number of bombs
+
+			<input type="number" id="in_bombNumber" value="10" min="1" max="99"></input>
+
+			<div class="start">
+				<button id="startGame">
+					Start Game
+				</button>
+			</div>
+		</span>
 	</div>
 
-	<div>
+	<div id="flagsLeftDiv">
+		<img id="flagsLeftImg" src="images/flag.png" width="50px" height="50px" alt="flag"/>
+		<h2 id="flagsLeft"></h2>
+	</div>
+
+	<div id="modeDiv">
 		<button id="mode">Mode: Dig</button>
 	</div>
 
@@ -19,13 +34,13 @@
 		<button id="newgame">New Game</button>
 	</div>
 
-	<div class="popup" onclick="togglePopup()">
-		<span class="popuptext" id="myPopup">Bomb number:</span>
-	</div>
-
 <style>
 	body {
 		background-color: #444444;
+	}
+
+	button {
+		cursor: pointer;
 	}
 
 	#grid {
@@ -33,7 +48,6 @@
 		height: 500px;
 		display: flex;
 		flex-wrap: wrap;
-		border: 5px solid black;
 		margin: 3%;
 	}
 
@@ -55,11 +69,11 @@
 
 	/* azul, verde, amarelo, laranja, vermelho, roxo, castanho, preto */
 	.bombs_1 {
-		color: rgba(0, 34, 228, 0.904);
+		color: rgba(0, 24, 160, 0.904);
 	}
 
 	.bombs_2 {
-		color: rgb(0, 85, 14);
+		color: rgb(49, 150, 66);
 	}
 
 	.bombs_3 {
@@ -87,9 +101,18 @@
 	}
 	
 
+	#flagsLeftImg {
+		margin-left: 2%;
+		margin-top: 0%;
+		float: left;
+	}
+
 	#flagsLeft {
 		color: white;
-		margin: 3%;
+		margin-top: 0%;
+		margin-left: 1%;
+		font-size: 40px;
+		width: 120px;
 	}
 
 	#mode {
@@ -97,6 +120,8 @@
 		height: 30px;
 		width: 110px;
 		font-size: large;
+		border: 1px solid black;
+		background-color: rgb(154, 118, 82);
 	}
 
 	#newgame {
@@ -129,16 +154,17 @@
 	/* Popup container */
 	.popup {
 		margin-left: 260px;
+		margin-bottom: 0px;
 		position: relative;
 		display: inline-block;
-		cursor: pointer;
+		font-size: 20px;
 	}
 
 	/* The actual popup (appears on top) */
 	.popup .popuptext {
 		visibility: hidden;
 		width: 160px;
-		background-color: #55555541;
+		background-color: #00000071;
 		color: #fff;
 		text-align: center;
 		border-radius: 6px;
@@ -148,6 +174,10 @@
 		bottom: 125%;
 		left: 50%;
 		margin-left: -80px;
+		padding-top: 20px;
+		padding-bottom: 20px;
+		padding-left: 10px;
+		padding-right: 10px;
 	}
 
 	/* Popup arrow */
@@ -180,6 +210,22 @@
 		to {opacity:1 ;}
 	}*/
 
+	#in_bombNumber {
+		margin-top: 2%;
+		width: 32px;
+		font-size: 16px;
+	}
+
+	#startGame {
+		margin-top: 10%;
+		font-size: 17px;
+		background-color: rgba(0, 231, 69, 0.6);
+	}
+
+	#startGame:hover {
+		background-color: rgba(0, 231, 69, 0.8);
+	}
+
 </style>
 
 <script>
@@ -187,17 +233,27 @@
 	const flagsLeftDisplay = document.getElementById("flagsLeft");
 	const modeBtn = document.getElementById("mode");
 	const popup = document.getElementById("myPopup");
-	const ROWS = 10, COLS = 10, BOMBS = 10;
+
+	const MIN_BOMBS = 1, MAX_BOMBS = 99;
+	const ROWS = 10, COLS = 10;
+	let BOMBS = 10;
 
 	let digMode = true;
 	let flagsLeft = BOMBS;
 
 
-	document.addEventListener("DOMContentLoaded", main);
+	document.addEventListener("DOMContentLoaded", onDOMLoad);
+	document.getElementById("startGame").addEventListener("click", startGame);
 
+	
+	function onDOMLoad() {
+		showPopup(true);
+	}
 
-	function main() {
-		togglePopup();
+	function startGame() {
+		readInput();
+		showPopup(false);
+
 		updateDisplayFlagNum();
 		createGrid();
 		placeBombs();
@@ -208,8 +264,33 @@
 		listenToNewGame();
 	}
 
+	function readInput() {
+		const bombInput = document.getElementById("in_bombNumber").value;
+
+		if (bombInput < MIN_BOMBS || bombInput > MAX_BOMBS) {
+			alert("Invalid bomb number. Please select a value between "
+				+ MIN_BOMBS + " and " + MAX_BOMBS + ".");
+			location.reload();
+		}
+
+		BOMBS = bombInput;
+		flagsLeft = BOMBS;
+	}
+
+	function showPopup(show) {
+		if (!show)
+			grid.style.border = "5px solid black";
+
+		popup.classList.toggle("show");
+		const divs = document.getElementsByTagName("div");
+
+		for (let i = 0; i < divs.length; i++) 
+			if (!divs.item(i).classList.contains("start"))
+				divs.item(i).hidden = show;
+	}
+
 	function updateDisplayFlagNum() {
-		flagsLeftDisplay.innerText = "Flags Left: " + flagsLeft;
+		flagsLeftDisplay.innerText = flagsLeft;
 	}
 
 	function createGrid() {
@@ -345,6 +426,9 @@
 
 	function updateFlagDisplay(div) { // status: hide, show, flag
 		if (div.getAttribute("status") == "hide") {
+			if (flagsLeft == 0)
+				return;
+
 			checkFlagImage(div);
 			div.setAttribute("status", "flag");
 			div.children.item(div.children.length-1).hidden = false;
@@ -452,10 +536,13 @@
 		modeBtn.addEventListener("click", function() {
 			digMode = !digMode;
 
-			if (modeBtn.innerText == "Mode: Dig")
+			if (modeBtn.innerText == "Mode: Dig") {
+				modeBtn.style.backgroundColor = "rgb(200, 15, 15, 0.5)";
 				modeBtn.innerText = "Mode: Flag";
-			else	
+			} else {
+				modeBtn.style.backgroundColor = "rgb(154, 118, 82)";
 				modeBtn.innerText = "Mode: Dig"
+			}
 		});
 	}
 
@@ -463,10 +550,6 @@
 		document.getElementById("newgame").addEventListener("click", function() {
 			location.reload();
 		});
-	}
-
-	function togglePopup() {
-  		popup.classList.toggle("show");
 	}
 
 </script>
