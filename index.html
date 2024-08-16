@@ -23,11 +23,14 @@
 
 	<div id="flagsLeftDiv">
 		<img id="flagsLeftImg" src="images/flag.png" width="50px" height="50px" alt="flag"/>
-		<h2 id="flagsLeft"></h2>
+		<h2 class="hudH2" id="flagsLeft"></h2>
+		<h2 class="hudH2" id="timer">00:00</h2>
+		<h2 class="hudH2" id="score">Score: 0</h2>
 	</div>
 
 	<div id="modeDiv">
 		<button id="mode">Mode: Dig</button>
+		<h2 class="hudH2" id="highScore">High Score: 0</h2>
 	</div>
 
 	<div>
@@ -48,7 +51,7 @@
 		height: 500px;
 		display: flex;
 		flex-wrap: wrap;
-		margin: 3%;
+		margin: 3% 0% 0% 3%;
 	}
 
 	.grid div {
@@ -65,6 +68,10 @@
 		font-size: 25px;
 		font-weight: bolder;
 		margin-top: 10px;
+	}
+
+	img {
+		margin-top: -25px;
 	}
 
 	/* azul, verde, amarelo, laranja, vermelho, roxo, castanho, preto */
@@ -103,16 +110,33 @@
 
 	#flagsLeftImg {
 		margin-left: 2%;
-		margin-top: 0%;
-		float: left;
+		display: inline-block;
+		margin-top: 0px;
+	}
+
+	.hudH2 {
+		color: rgb(235, 235, 235);
+		display: inline-block;
+		font-size: 28px;
 	}
 
 	#flagsLeft {
-		color: white;
-		margin-top: 0%;
-		margin-left: 1%;
+		margin: 0px;
+		margin-left: 0.5%;
 		font-size: 40px;
-		width: 120px;
+	}
+
+	#timer {
+		margin-left: 100px;
+	}
+
+	#score {
+		margin-left: 100px;
+	}
+
+
+	#modeDiv {
+		margin-top: 0px;
 	}
 
 	#mode {
@@ -124,8 +148,12 @@
 		background-color: rgb(154, 118, 82);
 	}
 
+	#highScore {
+		margin-left: 185px;
+	}
+
 	#newgame {
-		margin-top: 10%;
+		margin-top: 70px;
 		margin-left: 3%;
 		height: 40px;
 		width: 150px;
@@ -140,10 +168,6 @@
 
 	div[status="show"] {
 		background-color: #555555;
-	}
-
-	img {
-		margin-top: -25px;
 	}
 
 	.bombImage {
@@ -165,7 +189,7 @@
 		visibility: hidden;
 		width: 160px;
 		background-color: #00000071;
-		color: #fff;
+		color: rgb(235, 235, 235);
 		text-align: center;
 		border-radius: 6px;
 		padding: 8px 0;
@@ -233,21 +257,29 @@
 	const flagsLeftDisplay = document.getElementById("flagsLeft");
 	const modeBtn = document.getElementById("mode");
 	const popup = document.getElementById("myPopup");
+	const timer = document.querySelector("#timer");
+	const scoreDisplay = document.querySelector("#score");
+	const highScoreDisplay = document.querySelector("#highScore");
 
 	const MIN_BOMBS = 1, MAX_BOMBS = 99;
 	const ROWS = 10, COLS = 10;
-	let BOMBS = 10;
 
-	let digMode = true;
+	let BOMBS = 10;
 	let flagsLeft = BOMBS;
+	let digMode = true;
+	let gameEnd = false;
+	let seconds = minutes = hours = 0;
+	let displaySeconds = displayMinutes = displayHours = 0;
+	let timerInterval;
+	let score = 0;
 
 
 	document.addEventListener("DOMContentLoaded", onDOMLoad);
-	document.getElementById("startGame").addEventListener("click", startGame);
 
 	
 	function onDOMLoad() {
 		showPopup(true);
+		document.getElementById("startGame").addEventListener("click", startGame);
 	}
 
 	function startGame() {
@@ -259,6 +291,8 @@
 		placeBombs();
 		countNeighbouringBombs();
 		showRandomStartZoneTiles();
+		startTimer();
+		updateHighScoreDisplay();
 
 		listenToModeChange();
 		listenToNewGame();
@@ -382,13 +416,16 @@
 	}
 
 	function processTileClick(div) {
-		console.log(div);
-		
+		if (gameEnd)
+			return;
+
 		if (digMode && div.getAttribute("status") == "hide") {
 			if (div.className == "bomb") {
-				gameOver();
+				gameLost();
 			} else {
 				div.setAttribute("status", "show");
+				score++;
+				updateScoreDisplay();
 
 				if (div.className != "bombs_0")
 					div.children.item(0).innerText = div.className.split("_")[1];
@@ -455,7 +492,13 @@
 		div.appendChild(img);
 	}
 
-	function gameOver() {
+	function updateScoreDisplay() {
+		scoreDisplay.innerText = "Score: " + score;
+	}
+
+	function gameLost() {
+		score = 0;
+		updateScoreDisplay();
 		const tiles = grid.childNodes;
 
 		tiles.forEach(t => {
@@ -471,18 +514,26 @@
 		});
 
 		alert("Game Over!");
-
-
-
-		// TODO!!!
+		endGame();
 	}
 
 	function gameWon() {
 		alert("You Won!");
-		// TODO!!!
+
+		calculateFinalScore();
+		if (score > localStorage.getItem("highScore"))
+			updateHighScore();
+
+		endGame();
 	}
 
-	function isGameWin() {
+	function endGame() { // TODO!!!
+		window.clearInterval(timerInterval);
+		gameEnd = true;
+		
+	}
+
+	function isGameWin() { 
 		// to win you can flag all bombs or dig all non-bomb tiles
 		const bombs = document.querySelectorAll('.bomb');
 		let bombsFlagged = 0;
@@ -532,16 +583,71 @@
 		}
 	}
 
+	function startTimer() {
+		timerInterval = window.setInterval(updateTimer, 1000);
+	}
+
+	function updateTimer() {
+		seconds++;
+
+		if (seconds == 60) {
+			seconds = 0;
+			minutes++;
+
+			if (minutes == 60) {
+				minutes = 0;
+				hours++;
+			}
+		}
+
+		displaySeconds = (seconds < 10) ? "0" + seconds.toString() : seconds;
+		displayMinutes = (minutes < 10) ? "0" + minutes.toString() : minutes;
+		displayHours = (hours < 10) ? "0" + hours.toString() : hours;
+	
+		if (hours == 0)
+			timer.innerText = displayMinutes + ":" + displaySeconds;
+		else
+			timer.innerText = displayHours + ":" + displayMinutes + ":" + displaySeconds;
+	}
+
+	function updateHighScoreDisplay() {
+		highScoreDisplay.innerText = "High Score: " + localStorage.getItem("highScore");
+	}
+
+	function updateHighScore() {
+		localStorage.setItem("highScore", score);
+		updateHighScoreDisplay();
+	}
+
+	function calculateFinalScore() {
+		// 100s for 10x10, 10 bombs: no time bonus
+
+		const proportionScore = BOMBS * 10 / (ROWS * COLS);
+
+		const totalSecs = seconds + minutes * 60 + hours * 60 * 60;
+		const threshold = ROWS * COLS * proportionScore; // / 2;
+		const timeScore = (totalSecs >= threshold) ? 1 : threshold / totalSecs;
+
+		console.log("simple score: " + score + "\nbombs: " + BOMBS);
+		score = Math.round((score + BOMBS) * proportionScore * timeScore); 
+		updateScoreDisplay();
+		console.log("proportionScore: " + proportionScore + "\ntimeScore: " + timeScore + "\nscore: " + score);
+	}
+
+	function testFinalScore() {
+		// simple score = 49, bombs = 10, proportion = 1, time = 1.25;	output: 6138
+	}
+
 	function listenToModeChange() {
 		modeBtn.addEventListener("click", function() {
 			digMode = !digMode;
 
 			if (modeBtn.innerText == "Mode: Dig") {
-				modeBtn.style.backgroundColor = "rgb(200, 15, 15, 0.5)";
+				modeBtn.style.backgroundColor = "rgb(200, 50, 50)";
 				modeBtn.innerText = "Mode: Flag";
 			} else {
 				modeBtn.style.backgroundColor = "rgb(154, 118, 82)";
-				modeBtn.innerText = "Mode: Dig"
+				modeBtn.innerText = "Mode: Dig";
 			}
 		});
 	}
