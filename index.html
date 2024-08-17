@@ -11,7 +11,7 @@
 		<span class="popuptext" id="myPopup">
 			Number of bombs
 
-			<input type="number" id="in_bombNumber" value="10" min="1" max="99"></input>
+			<input type="number" id="in_bombNumber" value="10" min="1" max="50"></input>
 
 			<div class="start">
 				<button id="startGame">
@@ -30,6 +30,7 @@
 
 	<div id="modeDiv">
 		<button id="mode">Mode: Dig</button>
+		<button id="hint">Hints: 3</button>
 		<h2 class="hudH2" id="highScore">High Score: 0</h2>
 	</div>
 
@@ -131,7 +132,7 @@
 	}
 
 	#score {
-		margin-left: 100px;
+		margin-left: 118px;
 	}
 
 
@@ -148,8 +149,21 @@
 		background-color: rgb(154, 118, 82);
 	}
 
+	#hint {
+		margin-left: 72px;
+		height: 30px;
+		width: 82px;
+		font-size: large;
+		background-color: rgba(221, 224, 11);
+		border: 1px solid black;
+	}
+
+	#hint:hover {
+		background-color: rgb(252, 255, 87);
+	}
+
 	#highScore {
-		margin-left: 185px;
+		margin-left: 45px;
 	}
 
 	#newgame {
@@ -261,7 +275,7 @@
 	const scoreDisplay = document.querySelector("#score");
 	const highScoreDisplay = document.querySelector("#highScore");
 
-	const MIN_BOMBS = 1, MAX_BOMBS = 99;
+	const MIN_BOMBS = 1, MAX_BOMBS = 50;
 	const ROWS = 10, COLS = 10;
 
 	let BOMBS = 10;
@@ -272,6 +286,7 @@
 	let displaySeconds = displayMinutes = displayHours = 0;
 	let timerInterval;
 	let score = 0;
+	let hints = 3; // TODO!!!
 
 
 	document.addEventListener("DOMContentLoaded", onDOMLoad);
@@ -307,7 +322,7 @@
 			location.reload();
 		}
 
-		BOMBS = bombInput;
+		BOMBS = parseInt(bombInput);
 		flagsLeft = BOMBS;
 	}
 
@@ -424,11 +439,12 @@
 				gameLost();
 			} else {
 				div.setAttribute("status", "show");
-				score++;
+				const tileBombNum = parseInt(div.className.split("_")[1]);
+				score += tileBombNum;
 				updateScoreDisplay();
 
 				if (div.className != "bombs_0")
-					div.children.item(0).innerText = div.className.split("_")[1];
+					div.children.item(0).innerText = tileBombNum;
 				else
 					openAdjacent0Tiles(div.id);
 			}
@@ -497,8 +513,6 @@
 	}
 
 	function gameLost() {
-		score = 0;
-		updateScoreDisplay();
 		const tiles = grid.childNodes;
 
 		tiles.forEach(t => {
@@ -514,23 +528,27 @@
 		});
 
 		alert("Game Over!");
-		endGame();
+		endGame(false);
 	}
 
 	function gameWon() {
 		alert("You Won!");
+		endGame(true);
+	}
 
-		calculateFinalScore();
+	function endGame(win) { 
+		window.clearInterval(timerInterval);
+		gameEnd = true;
+
+		calculateFinalScore(win);
+		if (!win)
+			score = Math.round(score / 2);
+		updateScoreDisplay();
+
 		if (score > localStorage.getItem("highScore"))
 			updateHighScore();
 
-		endGame();
-	}
-
-	function endGame() { // TODO!!!
-		window.clearInterval(timerInterval);
-		gameEnd = true;
-		
+		// TODO: create popup with win/lose, time, score, highScore, newGame
 	}
 
 	function isGameWin() { 
@@ -619,23 +637,25 @@
 		updateHighScoreDisplay();
 	}
 
-	function calculateFinalScore() {
+	function calculateFinalScore(win) {
 		// 100s for 10x10, 10 bombs: no time bonus
 
 		const proportionScore = BOMBS * 10 / (ROWS * COLS);
 
 		const totalSecs = seconds + minutes * 60 + hours * 60 * 60;
-		const threshold = ROWS * COLS * proportionScore; // / 2;
-		const timeScore = (totalSecs >= threshold) ? 1 : threshold / totalSecs;
+		const threshold = ROWS * COLS * proportionScore; 
+		const timeScore = win && totalSecs < threshold ?
+		 					threshold / totalSecs : 1; 
 
-		console.log("simple score: " + score + "\nbombs: " + BOMBS);
-		score = Math.round((score + BOMBS) * proportionScore * timeScore); 
-		updateScoreDisplay();
-		console.log("proportionScore: " + proportionScore + "\ntimeScore: " + timeScore + "\nscore: " + score);
-	}
+		/*console.log(proportionScore);
+		console.log(timeScore);
+		console.log(BOMBS);
+		console.log((score + BOMBS));
+		console.log((score + BOMBS) * proportionScore);
+		console.log((score + BOMBS) * proportionScore * timeScore);
+		console.log(Math.round((score + (win ? BOMBS : 0)) * proportionScore * timeScore));*/
 
-	function testFinalScore() {
-		// simple score = 49, bombs = 10, proportion = 1, time = 1.25;	output: 6138
+		score = Math.round((score + (win ? BOMBS : 0)) * proportionScore * timeScore); 
 	}
 
 	function listenToModeChange() {
